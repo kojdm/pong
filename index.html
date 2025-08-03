@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" href="https://img.icons8.com/material-rounded/24/FA5252/sphere.png"/>
   <title>PONG</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <style>
@@ -93,6 +94,24 @@
     let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
 
     const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    // Sound effects (small base64 embedded audio)
+    const soundBounce = new Audio('assets/minidrum.mp3');
+    const soundWall = new Audio('assets/steeldrum.mp3');
+    const soundGameOver = new Audio('assets/gameover.mp3');
+
+    // Utility to play cloned sound (avoid overlapping issues and sound spam)
+    const soundCooldowns = new Map();
+    function playSound(sound) {
+      const now = Date.now();
+      const lastPlayed = soundCooldowns.get(sound) || 0;
+
+      if (now - lastPlayed >= 100) {
+        soundCooldowns.set(sound, now);
+        const s = sound.cloneNode();
+        s.play();
+      }
+    }
 
     function resetGame() {
       paddle.width = PADDLE_INITIAL_WIDTH;
@@ -205,13 +224,20 @@
       ball.y += ball.dy * dt;
 
       // Bounce off walls
-      if (ball.x < ball.radius || ball.x > canvas.width - ball.radius) ball.dx *= -1;
-      if (ball.y < ball.radius) ball.dy *= -1;
+      if (ball.x < ball.radius || ball.x > canvas.width - ball.radius) {
+        ball.dx *= -1;
+        playSound(soundWall);
+      }
+      if (ball.y < ball.radius) {
+        ball.dy *= -1;
+        playSound(soundWall);
+      }
 
       // Bounce off paddle (corners/sides too)
       if (circleRectCollision(ball.x, ball.y, ball.radius, paddle.x, paddle.y, paddle.width, paddle.height)) {
         // Bounce vertically
         ball.dy = -Math.abs(ball.dy);
+        playSound(soundBounce);
         ball.y = paddle.y - ball.radius;
 
         score++;
@@ -230,6 +256,7 @@
       }
 
       if (ball.y > canvas.height) {
+        playSound(soundGameOver);
         gameOver = true;
         if (score > 0) saveHighScore(score);
       }
