@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pong</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PONG</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <style>
     html, body {
       margin: 0;
@@ -48,15 +48,15 @@
   <script>
     // === CONFIGURABLE SETTINGS ===
     const BALL_INITIAL_SPEED = 0.3;
-    const BALL_SPEED_MULTIPLIER = 1.025;      // After every bounce
+    const BALL_SPEED_INCREMENT = 0.01;
     const PADDLE_INITIAL_WIDTH = 100;
     const PADDLE_MIN_WIDTH = 25;
     const PADDLE_HEIGHT = 15;
-    const PADDLE_SHRINK_BOUNCES = 5;        // Shrink every X bounces
+    const PADDLE_SHRINK_BOUNCES = 5;
     const PADDLE_SHRINK_AMOUNT = 5;
-    const PADDLE_TILT_SPEED = 0.2;           // Affects mobile tilt movement
+    const PADDLE_TILT_SPEED = 0.2;
     const CANVAS_WIDTH = 400;
-    const CANVAS_HEIGHT = 600;
+    const CANVAS_HEIGHT = 650;
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -127,15 +127,11 @@
     }
 
     canvas.addEventListener('touchstart', (e) => {
-      if (!gameStarted || gameOver) {
-        startOrRestart();
-      }
+      if (!gameStarted || gameOver) startOrRestart();
     }, { passive: false });
 
     canvas.addEventListener('click', () => {
-      if (!gameStarted || gameOver) {
-        startOrRestart();
-      }
+      if (!gameStarted || gameOver) startOrRestart();
     });
 
     canvas.addEventListener('mousemove', (e) => {
@@ -185,39 +181,49 @@
       });
     }
 
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    function circleRectCollision(cx, cy, r, rx, ry, rw, rh) {
+      const closestX = clamp(cx, rx, rx + rw);
+      const closestY = clamp(cy, ry, ry + rh);
+      const dx = cx - closestX;
+      const dy = cy - closestY;
+      return (dx * dx + dy * dy) <= (r * r);
+    }
+
     function update(dt) {
       if (!gameStarted || gameOver) return;
 
       if (isMobile && Math.abs(tiltX) > 1) {
         paddle.x += tiltX * PADDLE_TILT_SPEED * dt;
-        paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
+        paddle.x = clamp(paddle.x, 0, canvas.width - paddle.width);
       }
 
       ball.x += ball.dx * dt;
       ball.y += ball.dy * dt;
 
-      if (ball.x < ball.radius || ball.x > canvas.width - ball.radius) {
-        ball.dx *= -1;
-      }
+      // Bounce off walls
+      if (ball.x < ball.radius || ball.x > canvas.width - ball.radius) ball.dx *= -1;
+      if (ball.y < ball.radius) ball.dy *= -1;
 
-      if (ball.y < ball.radius) {
-        ball.dy *= -1;
-      }
-
-      if (
-        ball.y + ball.radius >= paddle.y &&
-        ball.y + ball.radius <= paddle.y + paddle.height &&
-        ball.x >= paddle.x &&
-        ball.x <= paddle.x + paddle.width
-      ) {
-        ball.dy *= -1;
+      // Bounce off paddle (corners/sides too)
+      if (circleRectCollision(ball.x, ball.y, ball.radius, paddle.x, paddle.y, paddle.width, paddle.height)) {
+        // Bounce vertically
+        ball.dy = -Math.abs(ball.dy);
         ball.y = paddle.y - ball.radius;
+
         score++;
         bounceCount++;
 
-        ball.dx *= BALL_SPEED_MULTIPLIER;
-        ball.dy *= BALL_SPEED_MULTIPLIER;
+        // Flat speed increment (preserve direction)
+        const signX = Math.sign(ball.dx);
+        const signY = Math.sign(ball.dy);
+        ball.dx = signX * (Math.abs(ball.dx) + BALL_SPEED_INCREMENT);
+        ball.dy = signY * (Math.abs(ball.dy) + BALL_SPEED_INCREMENT);
 
+        // Shrink paddle
         if (bounceCount % PADDLE_SHRINK_BOUNCES === 0 && paddle.width > paddle.minWidth) {
           paddle.width = Math.max(paddle.minWidth, paddle.width - PADDLE_SHRINK_AMOUNT);
         }
@@ -225,17 +231,15 @@
 
       if (ball.y > canvas.height) {
         gameOver = true;
-        saveHighScore(score);
+        if (score > 0) saveHighScore(score);
       }
     }
 
     function saveHighScore(current) {
-      if (current > 0) {
-        highScores.push(current);
-        highScores.sort((a, b) => b - a);
-        highScores = highScores.slice(0, 5);
-        localStorage.setItem("highScores", JSON.stringify(highScores));
-      }
+      highScores.push(current);
+      highScores.sort((a, b) => b - a);
+      highScores = highScores.slice(0, 5);
+      localStorage.setItem("highScores", JSON.stringify(highScores));
     }
 
     function draw() {
@@ -276,3 +280,4 @@
   </script>
 </body>
 </html>
+
