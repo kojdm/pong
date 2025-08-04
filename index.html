@@ -50,12 +50,18 @@
     // === CONFIGURABLE SETTINGS ===
     const BALL_INITIAL_SPEED = 0.3;
     const BALL_SPEED_INCREMENT = 0.015;
+    const BALL_INITIAL_RADIUS = 10;
+    const BALL_MIN_RADIUS = 2;
+    const BALL_SHRINK_BOUNCES = 1;
+    const BALL_SHRINK_AMOUNT = 0.2;
+
+    const PADDLE_TILT_SPEED = 0.125;
     const PADDLE_INITIAL_WIDTH = 100;
     const PADDLE_MIN_WIDTH = 25;
     const PADDLE_HEIGHT = 15;
     const PADDLE_SHRINK_BOUNCES = 5;
     const PADDLE_SHRINK_AMOUNT = 5;
-    const PADDLE_TILT_SPEED = 0.1;
+
     const CANVAS_WIDTH = 400;
     const CANVAS_HEIGHT = 650;
 
@@ -79,7 +85,8 @@
     const ball = {
       x: 0,
       y: 0,
-      radius: 10,
+      radius: BALL_INITIAL_RADIUS,
+      minRadius: BALL_MIN_RADIUS,
       dx: BALL_INITIAL_SPEED,
       dy: BALL_INITIAL_SPEED,
       color: '#f00'
@@ -95,7 +102,7 @@
 
     const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    // Sound effects (small base64 embedded audio)
+    // Sound effects
     const soundBounce = new Audio('assets/minidrum.mp3');
     const soundWall = new Audio('assets/steeldrum.mp3');
     const soundGameOver = new Audio('assets/gameover.mp3');
@@ -118,6 +125,7 @@
       paddle.x = canvas.width / 2 - paddle.width / 2;
       ball.x = canvas.width / 2;
       ball.y = canvas.height / 2;
+      ball.radius = BALL_INITIAL_RADIUS;
       ball.dx = BALL_INITIAL_SPEED;
       ball.dy = BALL_INITIAL_SPEED;
       score = 0;
@@ -252,6 +260,11 @@
         // Shrink paddle
         if (bounceCount % PADDLE_SHRINK_BOUNCES === 0 && paddle.width > paddle.minWidth) {
           paddle.width = Math.max(paddle.minWidth, paddle.width - PADDLE_SHRINK_AMOUNT);
+        }
+
+        // Shrink ball
+        if (bounceCount % BALL_SHRINK_BOUNCES === 0 && ball.radius > ball.minRadius) {
+          ball.radius = Math.max(ball.minRadius, ball.radius- BALL_SHRINK_AMOUNT);
         }
       }
 
